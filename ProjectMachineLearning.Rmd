@@ -1,0 +1,80 @@
+---
+title: "ProjectMachineLearning"
+author: "zoran"
+date: "22 March 2015"
+output: pdf_document
+---
+
+# Overview
+
+This project is focused on using machine learning algorithms to predict the manner in which 6 participants have performed weight lifting exercise, in terms of 'how well' they are doing it - as per criteria described in the paper in http://groupware.les.inf.puc-rio.br/har. This site also containts data that are used for training and testing.
+
+# Detailed description
+
+## Data cleaning
+
+We have first read the .csv data and cleaned them, in particular removing columns that have NA charaters, as shown below
+
+```{r}
+library(caret)
+library(randomForest)
+# read CSV data first - and define a character string c with all "NA" characters 
+trainingdata <- read.csv("./pml-training.csv",na.strings=c("NA","#DIV/0!",""))
+testingdata <- read.csv("./pml-testing.csv",na.strings=c("NA","#DIV/0!",""))
+dim(trainingdata); dim(testingdata)
+
+# Clean raw training and testingdata by removing all columns which contain all NA data
+training <- trainingdata[,colSums(is.na(testingdata))==0]
+testing <- testingdata[,colSums(is.na(testingdata))==0]
+
+# Delete first six non activity data
+training  <-training[,-c(1:7)]
+testing <-testing[,-c(1:7)]
+```
+
+## Preparing training and testing sets
+
+The trianing and testing data are created from the cleaned data above.
+
+```{r}
+# Split the training data set in training and testing again 
+inTrain <- createDataPartition(y=training$classe, p=0.75, list=FALSE)
+subTraining <- training[inTrain,]
+subTesting <- training[-inTrain,]
+```
+
+## Method used
+
+We used random forest method as it was mentiioned in the paper. We used the randomForest package rather than train caret package, as we found it to perform much faster that the train caret package. 
+
+```{r}
+# apply random forest algorithm
+modFit <- randomForest(classe ~., data=subTraining, na.action=na.omit)
+pred <- predict(modFit, subTesting, type ="class")
+```
+
+```{r}
+# Check confusion matrix 
+confMatrix <- confusionMatrix(pred,subTesting$classe)
+confMatrix
+```
+
+```{r]}
+## create anwsers 
+answers <- predict(modFit, testing, type="class")
+anwsers
+```
+
+The following is function recommended in the assignment for submitting results
+
+```{r}
+pml_write_files = function(x){
+    n = length(x)
+    for(i in 1:n){
+        filename = paste0("problem_id_",i,".txt")
+        write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+    }
+}
+
+pml_write_files(answers)
+```
